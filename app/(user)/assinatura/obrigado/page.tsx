@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BottomNav } from "@/components/BottomNav";
 
-export default function ThankYouPage() {
+function ThankYouContent() {
   const searchParams = useSearchParams();
   const planoNome = searchParams.get("plano") || "seu plano";
 
@@ -132,5 +132,19 @@ export default function ThankYouPage() {
       {/* Menu Inferior */}
       <BottomNav />
     </div>
+  );
+}
+
+export default function ThankYouPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <p className="text-gray-400">Carregando...</p>
+        </div>
+      }
+    >
+      <ThankYouContent />
+    </Suspense>
   );
 }

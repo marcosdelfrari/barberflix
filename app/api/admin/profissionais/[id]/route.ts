@@ -46,13 +46,16 @@ export async function GET(
       );
     }
 
+    type ServicoPrestadoItem = (typeof profissional.servicosPrestados)[number];
     return NextResponse.json({
       ...profissional,
-      servicos: profissional.servicosPrestados.map((sp) => ({
-        id: sp.servico.id,
-        nome: sp.servico.nome,
-        preco: Number(sp.servico.preco),
-      })),
+      servicos: profissional.servicosPrestados.map(
+        (sp: ServicoPrestadoItem) => ({
+          id: sp.servico.id,
+          nome: sp.servico.nome,
+          preco: Number(sp.servico.preco),
+        }),
+      ),
     });
   } catch (error) {
     console.error("Erro ao buscar profissional:", error);

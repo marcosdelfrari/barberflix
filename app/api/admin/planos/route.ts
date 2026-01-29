@@ -27,8 +27,9 @@ export async function GET() {
     });
 
     // Contar assinaturas ativas por plano
+    type PlanoComCount = (typeof planos)[number];
     const planosComStats = await Promise.all(
-      planos.map(async (plano) => {
+      planos.map(async (plano: PlanoComCount) => {
         const assinaturasAtivas = await prisma.assinatura.count({
           where: {
             planoId: plano.id,

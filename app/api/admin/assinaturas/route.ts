@@ -52,13 +52,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const assinaturasFormatadas = assinaturas.map((a) => ({
-      ...a,
-      plano: {
-        ...a.plano,
-        preco: Number(a.plano.preco),
-      },
-    }));
+    const assinaturasFormatadas = assinaturas.map(
+      (a: {
+        plano: { id: string; nome: string; preco: unknown };
+        [key: string]: unknown;
+      }) => ({
+        ...a,
+        plano: {
+          ...a.plano,
+          preco: Number(a.plano.preco),
+        },
+      }),
+    );
 
     return NextResponse.json(assinaturasFormatadas);
   } catch (error) {

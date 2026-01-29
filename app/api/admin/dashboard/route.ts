@@ -145,17 +145,29 @@ export async function GET() {
           variacao: "Total",
         },
       },
-      proximosAgendamentos: proximosAgendamentos.map((ag) => ({
-        id: ag.id,
-        cliente: ag.usuario.nome,
-        profissional: ag.profissional.nome,
-        servico: ag.servicos.map((as) => as.servico.nome).join(", ") || "—",
-        horario: ag.dataHora.toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
+      proximosAgendamentos: proximosAgendamentos.map(
+        (ag: {
+          id: string;
+          usuario: { nome: string };
+          profissional: { nome: string };
+          servicos: { servico: { nome: string } }[];
+          dataHora: Date;
+          status: string;
+        }) => ({
+          id: ag.id,
+          cliente: ag.usuario.nome,
+          profissional: ag.profissional.nome,
+          servico:
+            ag.servicos
+              .map((as: { servico: { nome: string } }) => as.servico.nome)
+              .join(", ") || "—",
+          horario: ag.dataHora.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          status: ag.status,
         }),
-        status: ag.status,
-      })),
+      ),
     });
   } catch (error) {
     console.error("Erro ao buscar KPIs:", error);

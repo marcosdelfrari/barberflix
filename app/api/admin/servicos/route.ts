@@ -53,10 +53,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const servicosFormatados = servicos.map((s) => ({
+    type ServicoComInclude = (typeof servicos)[number];
+    type ProfissionalItem = ServicoComInclude["profissionais"][number];
+    const servicosFormatados = servicos.map((s: ServicoComInclude) => ({
       ...s,
       preco: Number(s.preco),
-      profissionais: s.profissionais.map((p) => p.profissional),
+      profissionais: s.profissionais.map(
+        (p: ProfissionalItem) => p.profissional,
+      ),
     }));
 
     return NextResponse.json(servicosFormatados);

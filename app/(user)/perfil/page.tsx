@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -43,7 +43,7 @@ interface User {
   } | null;
 }
 
-export default function MeusAgendamentosPage() {
+function PerfilContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
@@ -553,5 +553,21 @@ export default function MeusAgendamentosPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MeusAgendamentosPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        </div>
+      }
+    >
+      <PerfilContent />
+    </Suspense>
   );
 }

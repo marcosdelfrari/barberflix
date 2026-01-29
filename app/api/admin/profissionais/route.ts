@@ -48,8 +48,9 @@ export async function GET() {
     });
 
     // Calcular estatísticas de cada profissional
+    type ProfissionalComInclude = (typeof profissionais)[number];
     const profissionaisComStats = await Promise.all(
-      profissionais.map(async (prof) => {
+      profissionais.map(async (prof: ProfissionalComInclude) => {
         // Contar agendamentos concluídos
         const agendamentosConcluidos = await prisma.agendamento.count({
           where: {
@@ -69,9 +70,11 @@ export async function GET() {
           },
         });
 
+        type ServicoPrestadoItem =
+          ProfissionalComInclude["servicosPrestados"][number];
         return {
           ...prof,
-          servicos: prof.servicosPrestados.map((sp) => ({
+          servicos: prof.servicosPrestados.map((sp: ServicoPrestadoItem) => ({
             id: sp.servico.id,
             nome: sp.servico.nome,
             preco: Number(sp.servico.preco),

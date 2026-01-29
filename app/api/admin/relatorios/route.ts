@@ -103,8 +103,9 @@ async function getRelatorioGeral(
     include: { plano: { select: { preco: true } } },
   });
 
+  type AssinaturaComPlano = (typeof receitaAssinaturas)[number];
   const totalReceitaAssinaturas = receitaAssinaturas.reduce(
-    (acc, a) => acc + Number(a.plano.preco),
+    (acc: number, a: AssinaturaComPlano) => acc + Number(a.plano.preco),
     0,
   );
 
@@ -142,31 +143,47 @@ async function getRelatorioFaturamento(
   });
 
   // Buscar nomes dos profissionais
+  type FaturamentoPorProf = (typeof faturamentoPorProfissional)[number];
   const profissionais = await prisma.profissional.findMany({
     where: {
-      id: { in: faturamentoPorProfissional.map((f) => f.profissionalId) },
+      id: {
+        in: faturamentoPorProfissional.map(
+          (f: FaturamentoPorProf) => f.profissionalId,
+        ),
+      },
     },
     select: { id: true, nome: true },
   });
 
-  const profissionaisMap = new Map(profissionais.map((p) => [p.id, p.nome]));
+  type ProfissionalSelect = (typeof profissionais)[number];
+  const profissionaisMap = new Map(
+    profissionais.map((p: ProfissionalSelect) => [p.id, p.nome]),
+  );
 
-  // Faturamento por serviço
-  const faturamentoPorServico = await prisma.agendamento.groupBy({
+  // Faturamento por serviço (via AgendamentoServico - Agendamento não tem servicoId direto)
+  const faturamentoPorServico = await prisma.agendamentoServico.groupBy({
     by: ["servicoId"],
-    where: whereFilter,
-    _sum: { valorTotal: true },
+    where: { agendamento: whereFilter },
+    _sum: { preco: true },
     _count: true,
   });
 
+  type FaturamentoPorServico = (typeof faturamentoPorServico)[number];
   const servicos = await prisma.servico.findMany({
     where: {
-      id: { in: faturamentoPorServico.map((f) => f.servicoId) },
+      id: {
+        in: faturamentoPorServico.map(
+          (f: FaturamentoPorServico) => f.servicoId,
+        ),
+      },
     },
     select: { id: true, nome: true },
   });
 
-  const servicosMap = new Map(servicos.map((s) => [s.id, s.nome]));
+  type ServicoSelect = (typeof servicos)[number];
+  const servicosMap = new Map(
+    servicos.map((s: ServicoSelect) => [s.id, s.nome]),
+  );
 
   // Faturamento por dia (últimos 30 dias)
   const agendamentos = await prisma.agendamento.findMany({
@@ -175,7 +192,8 @@ async function getRelatorioFaturamento(
   });
 
   const faturamentoPorDia: Record<string, number> = {};
-  agendamentos.forEach((ag) => {
+  type AgendamentoSelect = (typeof agendamentos)[number];
+  agendamentos.forEach((ag: AgendamentoSelect) => {
     const data = ag.dataHora.toISOString().split("T")[0];
     faturamentoPorDia[data] =
       (faturamentoPorDia[data] || 0) + Number(ag.valorTotal);
@@ -183,16 +201,18 @@ async function getRelatorioFaturamento(
 
   return NextResponse.json({
     periodo: { inicio, fim },
-    porProfissional: faturamentoPorProfissional.map((f) => ({
-      profissionalId: f.profissionalId,
-      nome: profissionaisMap.get(f.profissionalId) || "Desconhecido",
-      total: Number(f._sum.valorTotal || 0),
-      quantidade: f._count,
-    })),
-    porServico: faturamentoPorServico.map((f) => ({
+    porProfissional: faturamentoPorProfissional.map(
+      (f: FaturamentoPorProf) => ({
+        profissionalId: f.profissionalId,
+        nome: profissionaisMap.get(f.profissionalId) || "Desconhecido",
+        total: Number(f._sum.valorTotal || 0),
+        quantidade: f._count,
+      }),
+    ),
+    porServico: faturamentoPorServico.map((f: FaturamentoPorServico) => ({
       servicoId: f.servicoId,
       nome: servicosMap.get(f.servicoId) || "Desconhecido",
-      total: Number(f._sum.valorTotal || 0),
+      total: Number(f._sum.preco || 0),
       quantidade: f._count,
     })),
     porDia: Object.entries(faturamentoPorDia)
@@ -213,8 +233,9 @@ async function getRelatorioPerformance(
     select: { id: true, nome: true },
   });
 
+  type ProfissionalPerf = (typeof profissionais)[number];
   const performance = await Promise.all(
-    profissionais.map(async (prof) => {
+    profissionais.map(async (prof: ProfissionalPerf) => {
       const stats = await prisma.agendamento.groupBy({
         by: ["status"],
         where: {
@@ -224,13 +245,18 @@ async function getRelatorioPerformance(
         _count: true,
       });
 
-      const total = stats.reduce((acc, s) => acc + s._count, 0);
+      type StatsItem = (typeof stats)[number];
+      const total = stats.reduce(
+        (acc: number, s: StatsItem) => acc + s._count,
+        0,
+      );
       const concluidos =
-        stats.find((s) => s.status === "CONCLUIDO")?._count || 0;
+        stats.find((s: StatsItem) => s.status === "CONCLUIDO")?._count || 0;
       const cancelados =
-        stats.find((s) => s.status === "CANCELADO")?._count || 0;
+        stats.find((s: StatsItem) => s.status === "CANCELADO")?._count || 0;
       const naoCompareceu =
-        stats.find((s) => s.status === "NAO_COMPARECEU")?._count || 0;
+        stats.find((s: StatsItem) => s.status === "NAO_COMPARECEU")?._count ||
+        0;
 
       return {
         profissionalId: prof.id,
@@ -246,9 +272,12 @@ async function getRelatorioPerformance(
     }),
   );
 
+  type PerformanceItem = (typeof performance)[number];
   return NextResponse.json({
     periodo: { inicio, fim },
-    performance: performance.sort((a, b) => b.concluidos - a.concluidos),
+    performance: performance.sort(
+      (a: PerformanceItem, b: PerformanceItem) => b.concluidos - a.concluidos,
+    ),
   });
 }
 
@@ -272,14 +301,18 @@ async function getRelatorioFrequencia(
     _count: true,
   });
 
+  type AgendamentoGroupByUser = (typeof agendamentos)[number];
   const usuarios = await prisma.usuario.findMany({
     where: {
-      id: { in: agendamentos.map((a) => a.usuarioId) },
+      id: { in: agendamentos.map((a: AgendamentoGroupByUser) => a.usuarioId) },
     },
     select: { id: true, nome: true, email: true },
   });
 
-  const usuariosMap = new Map(usuarios.map((u) => [u.id, u]));
+  type UsuarioSelect = (typeof usuarios)[number];
+  const usuariosMap = new Map<string, UsuarioSelect>(
+    usuarios.map((u: UsuarioSelect) => [u.id, u]),
+  );
 
   // Horários mais procurados
   const todosAgendamentos = await prisma.agendamento.findMany({
@@ -293,7 +326,8 @@ async function getRelatorioFrequencia(
   const horariosPorHora: Record<number, number> = {};
   const horariosPorDiaSemana: Record<number, number> = {};
 
-  todosAgendamentos.forEach((ag) => {
+  type AgendamentoDataHora = (typeof todosAgendamentos)[number];
+  todosAgendamentos.forEach((ag: AgendamentoDataHora) => {
     const hora = ag.dataHora.getHours();
     const diaSemana = ag.dataHora.getDay();
 
@@ -307,12 +341,21 @@ async function getRelatorioFrequencia(
   return NextResponse.json({
     periodo: { inicio, fim },
     clientesMaisFrequentes: agendamentos
-      .map((a) => ({
-        usuarioId: a.usuarioId,
-        ...usuariosMap.get(a.usuarioId),
-        totalAgendamentos: a._count,
-      }))
-      .sort((a, b) => b.totalAgendamentos - a.totalAgendamentos)
+      .map((a: AgendamentoGroupByUser) => {
+        const usuario = usuariosMap.get(a.usuarioId);
+        return {
+          usuarioId: a.usuarioId,
+          nome: usuario?.nome,
+          email: usuario?.email,
+          totalAgendamentos: a._count,
+        };
+      })
+      .sort(
+        (
+          a: { usuarioId: string; totalAgendamentos: number },
+          b: { usuarioId: string; totalAgendamentos: number },
+        ) => b.totalAgendamentos - a.totalAgendamentos,
+      )
       .slice(0, 20),
     horariosMaisPopulares: Object.entries(horariosPorHora)
       .map(([hora, count]) => ({ hora: `${hora}:00`, count }))

@@ -186,7 +186,7 @@ export default function RelatoriosAdminPage() {
             <div className="w-16 text-sm font-medium text-right text-white">
               {typeof item[valueKey] === "number" && valueKey.includes("total")
                 ? `R$ ${(item[valueKey] as number).toFixed(0)}`
-                : item[valueKey]}
+                : String(item[valueKey])}
             </div>
           </div>
         ))}

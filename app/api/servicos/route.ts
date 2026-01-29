@@ -42,14 +42,17 @@ export async function GET(request: NextRequest) {
     });
 
     // Converter para o formato esperado
-    const servicosFormatados = profissionalServicos.map((ps) => ({
-      id: ps.servico.id,
-      nome: ps.servico.nome,
-      descricao: ps.servico.descricao,
-      duracao: ps.servico.duracao,
-      preco: Number(ps.servico.preco),
-      precoAPartir: ps.servico.precoAPartir,
-    }));
+    type ProfissionalServicoItem = (typeof profissionalServicos)[number];
+    const servicosFormatados = profissionalServicos.map(
+      (ps: ProfissionalServicoItem) => ({
+        id: ps.servico.id,
+        nome: ps.servico.nome,
+        descricao: ps.servico.descricao,
+        duracao: ps.servico.duracao,
+        preco: Number(ps.servico.preco),
+        precoAPartir: ps.servico.precoAPartir,
+      }),
+    );
 
     return NextResponse.json(servicosFormatados);
   } catch (error) {

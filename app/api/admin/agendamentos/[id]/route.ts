@@ -64,7 +64,7 @@ export async function GET(
     }
 
     const duracaoTotal = agendamento.servicos.reduce(
-      (acc, s) => acc + s.duracao,
+      (acc: number, s: { duracao: number }) => acc + s.duracao,
       0,
     );
 
@@ -72,12 +72,18 @@ export async function GET(
       ...agendamento,
       valorTotal: Number(agendamento.valorTotal),
       duracaoTotal,
-      servicos: agendamento.servicos.map((s) => ({
-        id: s.servico.id,
-        nome: s.servico.nome,
-        preco: Number(s.preco),
-        duracao: s.duracao,
-      })),
+      servicos: agendamento.servicos.map(
+        (s: {
+          servico: { id: string; nome: string };
+          preco: unknown;
+          duracao: number;
+        }) => ({
+          id: s.servico.id,
+          nome: s.servico.nome,
+          preco: Number(s.preco),
+          duracao: s.duracao,
+        }),
+      ),
     });
   } catch (error) {
     console.error("Erro ao buscar agendamento:", error);
@@ -139,8 +145,12 @@ export async function PATCH(
       const servicos = await prisma.servico.findMany({
         where: {
           id: { in: servicosIds },
-          profissionalId: agendamento.profissionalId,
           ativo: true,
+          profissionais: {
+            some: {
+              profissionalId: agendamento.profissionalId,
+            },
+          },
         },
       });
 
@@ -152,8 +162,14 @@ export async function PATCH(
       }
 
       // Calcular nova duração total e valor total
-      const duracaoTotal = servicos.reduce((acc, s) => acc + s.duracao, 0);
-      const valorTotal = servicos.reduce((acc, s) => acc + Number(s.preco), 0);
+      const duracaoTotal = servicos.reduce(
+        (acc: number, s: { duracao: number }) => acc + s.duracao,
+        0,
+      );
+      const valorTotal = servicos.reduce(
+        (acc: number, s: { preco: unknown }) => acc + Number(s.preco),
+        0,
+      );
 
       // Atualizar dataFim baseado na nova duração
       const dataHoraBase = dataHora ? new Date(dataHora) : agendamento.dataHora;
@@ -197,12 +213,14 @@ export async function PATCH(
       });
 
       await prisma.agendamentoServico.createMany({
-        data: servicos.map((s) => ({
-          agendamentoId: id,
-          servicoId: s.id,
-          preco: s.preco,
-          duracao: s.duracao,
-        })),
+        data: servicos.map(
+          (s: { id: string; preco: unknown; duracao: number }) => ({
+            agendamentoId: id,
+            servicoId: s.id,
+            preco: Number(s.preco),
+            duracao: s.duracao,
+          }),
+        ),
       });
 
       updateData.valorTotal = valorTotal;
@@ -213,7 +231,7 @@ export async function PATCH(
     } else if (dataHora) {
       // Se apenas dataHora foi alterada (sem serviços)
       const duracaoTotal = agendamento.servicos.reduce(
-        (acc, s) => acc + s.duracao,
+        (acc: number, s: { duracao: number }) => acc + s.duracao,
         0,
       );
       const novaDataHora = new Date(dataHora);
@@ -272,12 +290,18 @@ export async function PATCH(
     return NextResponse.json({
       ...agendamentoAtualizado,
       valorTotal: Number(agendamentoAtualizado.valorTotal),
-      servicos: agendamentoAtualizado.servicos.map((s) => ({
-        id: s.servico.id,
-        nome: s.servico.nome,
-        preco: Number(s.preco),
-        duracao: s.duracao,
-      })),
+      servicos: agendamentoAtualizado.servicos.map(
+        (s: {
+          servico: { id: string; nome: string };
+          preco: unknown;
+          duracao: number;
+        }) => ({
+          id: s.servico.id,
+          nome: s.servico.nome,
+          preco: Number(s.preco),
+          duracao: s.duracao,
+        }),
+      ),
     });
   } catch (error) {
     console.error("Erro ao atualizar agendamento:", error);

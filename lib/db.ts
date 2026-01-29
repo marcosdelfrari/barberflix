@@ -10,11 +10,10 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error("DATABASE_URL não está definida no ambiente");
-  }
+  // Placeholder permite que o build do Next.js conclua sem .env (coleta de page data).
+  // Em runtime, defina DATABASE_URL no .env para conectar ao banco real.
+  const connectionString =
+    process.env.DATABASE_URL || "postgresql://localhost:5432/placeholder";
 
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);

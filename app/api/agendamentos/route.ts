@@ -84,20 +84,27 @@ export async function GET(request: NextRequest) {
     });
 
     // Converter Decimal para number e formatar serviços
-    const agendamentosFormatados = agendamentos.map((ag) => {
-      const duracaoTotal = ag.servicos.reduce((acc, s) => acc + s.duracao, 0);
-      return {
-        ...ag,
-        valorTotal: Number(ag.valorTotal),
-        duracaoTotal,
-        servicos: ag.servicos.map((s) => ({
-          id: s.servico.id,
-          nome: s.servico.nome,
-          preco: Number(s.preco),
-          duracao: s.duracao,
-        })),
-      };
-    });
+    type AgendamentoComServicos = (typeof agendamentos)[number];
+    type ServicoAgendamento = AgendamentoComServicos["servicos"][number];
+    const agendamentosFormatados = agendamentos.map(
+      (ag: AgendamentoComServicos) => {
+        const duracaoTotal = ag.servicos.reduce(
+          (acc: number, s: ServicoAgendamento) => acc + s.duracao,
+          0,
+        );
+        return {
+          ...ag,
+          valorTotal: Number(ag.valorTotal),
+          duracaoTotal,
+          servicos: ag.servicos.map((s: ServicoAgendamento) => ({
+            id: s.servico.id,
+            nome: s.servico.nome,
+            preco: Number(s.preco),
+            duracao: s.duracao,
+          })),
+        };
+      },
+    );
 
     return NextResponse.json(agendamentosFormatados);
   } catch (error) {
@@ -172,8 +179,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Calcular duração total e valor total
-    const duracaoTotal = servicos.reduce((acc, s) => acc + s.duracao, 0);
-    const valorTotal = servicos.reduce((acc, s) => acc + Number(s.preco), 0);
+    type ServicoItem = (typeof servicos)[number];
+    const duracaoTotal = servicos.reduce(
+      (acc: number, s: ServicoItem) => acc + s.duracao,
+      0,
+    );
+    const valorTotal = servicos.reduce(
+      (acc: number, s: ServicoItem) => acc + Number(s.preco),
+      0,
+    );
 
     // Calcular data fim baseado na duração total dos serviços
     const dataHoraInicio = new Date(dataHora);
@@ -229,7 +243,7 @@ export async function POST(request: NextRequest) {
         valorTotal,
         status: "PENDENTE",
         servicos: {
-          create: servicos.map((s) => ({
+          create: servicos.map((s: ServicoItem) => ({
             servicoId: s.id,
             preco: s.preco,
             duracao: s.duracao,
@@ -253,11 +267,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    type AgendamentoServicoItem = (typeof agendamento.servicos)[number];
     return NextResponse.json(
       {
         ...agendamento,
         valorTotal: Number(agendamento.valorTotal),
-        servicos: agendamento.servicos.map((s) => ({
+        servicos: agendamento.servicos.map((s: AgendamentoServicoItem) => ({
           id: s.servico.id,
           nome: s.servico.nome,
           preco: Number(s.preco),

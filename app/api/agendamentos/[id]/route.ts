@@ -107,8 +107,9 @@ export async function GET(
       );
     }
 
+    type ServicoAgendamento = (typeof agendamento.servicos)[number];
     const duracaoTotal = agendamento.servicos.reduce(
-      (acc, s) => acc + s.duracao,
+      (acc: number, s: ServicoAgendamento) => acc + s.duracao,
       0,
     );
 
@@ -116,7 +117,7 @@ export async function GET(
       ...agendamento,
       valorTotal: Number(agendamento.valorTotal),
       duracaoTotal,
-      servicos: agendamento.servicos.map((s) => ({
+      servicos: agendamento.servicos.map((s: ServicoAgendamento) => ({
         id: s.servico.id,
         nome: s.servico.nome,
         preco: Number(s.preco),
