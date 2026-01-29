@@ -1,0 +1,275 @@
+// Schema Prisma - Barbearia Cavalheiros
+// Documentação: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enum para os tipos de usuário
+enum Role {
+  USER
+  ADMIN
+}
+
+// Enum para status da assinatura
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  CANCELED
+}
+
+// Enum para status do agendamento
+enum AgendamentoStatus {
+  PENDENTE
+  CONFIRMADO
+  CANCELADO
+  CONCLUIDO
+  NAO_COMPARECEU
+}
+
+// Tabela de Usuários
+model Usuario {
+  id            String    @id @default(cuid())
+  nome          String
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  senha         String    @default("")
+  telefone      String?
+  endereco      String?
+  image         String?
+  role          Role      @default(USER)
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  assinatura   Assinatura?
+  agendamentos Agendamento[]
+  accounts     Account[]
+  sessions     Session[]
+
+  @@map("usuarios")
+}
+
+// Tabela de Contas OAuth (NextAuth)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// Tabela de Sessões (NextAuth)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Tabela de Tokens de Verificação (NextAuth)
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Tabela de Planos
+model Plano {
+  id          String   @id @default(cuid())
+  nome        String
+  descricao   String?
+  preco       Decimal  @db.Decimal(10, 2)
+  vigencia    String?  // Ex: "Indeterminado", "Mensal", "Anual"
+  features    String[] // Array de strings para os benefícios
+  destaque    Boolean  @default(false) // Plano em destaque/mais popular
+  ordem       Int      @default(0) // Ordem de exibição
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assinaturas Assinatura[]
+
+  @@map("planos")
+}
+
+// Tabela de Assinaturas
+model Assinatura {
+  id              String             @id @default(cuid())
+  usuarioId       String             @unique @map("usuario_id")
+  planoId         String             @map("plano_id")
+  status          SubscriptionStatus @default(PENDING)
+  dataInicio      DateTime           @default(now()) @map("data_inicio")
+  dataFim         DateTime?          @map("data_fim")
+  proximaCobranca DateTime?          @map("proxima_cobranca")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  plano   Plano   @relation(fields: [planoId], references: [id])
+
+  @@map("assinaturas")
+}
+
+// Tabela de Estabelecimentos
+model Estabelecimento {
+  id          String   @id @default(cuid())
+  nome        String
+  endereco    String
+  telefone    String?
+  email       String?
+  foto        String?  // URL da foto do estabelecimento
+  logo        String?  // URL da logo do estabelecimento
+  descricao   String?
+  cnpj        String?
+  responsavel String?  // Nome do responsável
+  horarioAbre String?  @map("horario_abre") // Ex: "08:00"
+  horarioFecha String? @map("horario_fecha") // Ex: "20:00"
+  diasFuncionamento String[] @map("dias_funcionamento") // Ex: ["seg", "ter", "qua", "qui", "sex", "sab"]
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profissionais Profissional[]
+  agendamentos  Agendamento[]
+  servicos      Servico[]
+
+  @@map("estabelecimentos")
+}
+
+// Tabela de Profissionais
+model Profissional {
+  id               String   @id @default(cuid())
+  estabelecimentoId String  @map("estabelecimento_id")
+  nome             String
+  email            String?
+  telefone         String?
+  foto             String?  // URL da foto do profissional
+  especialidade    String?
+  bio              String?  // Descrição/biografia do profissional
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  estabelecimento Estabelecimento @relation(fields: [estabelecimentoId], references: [id])
+  servicosPrestados ProfissionalServico[]
+  agendamentos    Agendamento[]
+  disponibilidade Disponibilidade[]
+
+  @@map("profissionais")
+}
+
+// Tabela de Serviços (Catálogo Global do Estabelecimento)
+model Servico {
+  id                String   @id @default(cuid())
+  estabelecimentoId String   @map("estabelecimento_id")
+  nome              String
+  descricao         String?
+  duracao           Int      // Duração em minutos
+  preco             Decimal  @db.Decimal(10, 2)
+  precoAPartir      Boolean  @default(false) @map("preco_a_partir")
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  estabelecimento       Estabelecimento       @relation(fields: [estabelecimentoId], references: [id])
+  profissionais         ProfissionalServico[]
+  agendamentoServicos   AgendamentoServico[]
+
+  @@map("servicos")
+}
+
+// Tabela intermediária Profissional <-> Serviço (quais serviços cada profissional oferece)
+model ProfissionalServico {
+  id             String   @id @default(cuid())
+  profissionalId String   @map("profissional_id")
+  servicoId      String   @map("servico_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  profissional Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  servico      Servico      @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+
+  @@unique([profissionalId, servicoId])
+  @@map("profissional_servicos")
+}
+
+// Tabela de Disponibilidade do Profissional
+model Disponibilidade {
+  id             String   @id @default(cuid())
+  profissionalId String   @map("profissional_id")
+  diaSemana      Int      // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  horaInicio     String   @map("hora_inicio") // Ex: "08:00"
+  horaFim        String   @map("hora_fim")    // Ex: "18:00"
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  profissional Profissional @relation(fields: [profissionalId], references: [id])
+
+  @@map("disponibilidades")
+}
+
+// Tabela de Agendamentos
+model Agendamento {
+  id               String            @id @default(cuid())
+  usuarioId        String            @map("usuario_id")
+  estabelecimentoId String           @map("estabelecimento_id")
+  profissionalId   String            @map("profissional_id")
+  dataHora         DateTime          @map("data_hora")
+  dataFim          DateTime          @map("data_fim") // Calculado: dataHora + duração total dos serviços
+  status           AgendamentoStatus @default(PENDENTE)
+  observacoes      String?
+  valorTotal       Decimal           @db.Decimal(10, 2) @map("valor_total")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  usuario            Usuario              @relation(fields: [usuarioId], references: [id])
+  estabelecimento    Estabelecimento      @relation(fields: [estabelecimentoId], references: [id])
+  profissional       Profissional         @relation(fields: [profissionalId], references: [id])
+  servicos           AgendamentoServico[]
+
+  @@index([dataHora])
+  @@index([profissionalId, dataHora])
+  @@index([usuarioId])
+  @@map("agendamentos")
+}
+
+// Tabela intermediária para relação Agendamento <-> Serviço (muitos para muitos)
+model AgendamentoServico {
+  id            String   @id @default(cuid())
+  agendamentoId String   @map("agendamento_id")
+  servicoId     String   @map("servico_id")
+  preco         Decimal  @db.Decimal(10, 2) // Preço no momento do agendamento
+  duracao       Int      // Duração em minutos no momento do agendamento
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  agendamento Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  servico     Servico     @relation(fields: [servicoId], references: [id])
+
+  @@unique([agendamentoId, servicoId])
+  @@map("agendamento_servicos")
+}
