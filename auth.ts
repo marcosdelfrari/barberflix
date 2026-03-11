@@ -1,15 +1,11 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, account }) {
       // Na primeira vez que o usuário faz login (quando user existe)
       if (account && user) {
@@ -25,13 +21,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: user.email!,
               nome: user.name || "Usuário",
               image: user.image,
-              senha: "", // OAuth não precisa de senha
+              senha: "",
               ativo: true,
               role: "USER",
             },
           });
         } else if (!dbUser.ativo) {
-          // Impedir login se usuário estiver desativado
           throw new Error("Usuário desativado");
         }
 
@@ -52,7 +47,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
     async signIn({ user }) {
-      // Verificar se o usuário está desativado
       const existingUser = await prisma.usuario.findUnique({
         where: { email: user.email! },
       });
@@ -63,12 +57,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return true;
     },
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  session: {
-    strategy: "jwt",
   },
 });
