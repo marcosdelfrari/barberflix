@@ -15,7 +15,13 @@ function createPrismaClient() {
   const connectionString =
     process.env.DATABASE_URL || "postgresql://localhost:5432/placeholder";
 
-  const pool = new Pool({ connectionString });
+  const isOracleCloud = connectionString.includes("oci.oraclecloud.com");
+  const pool = new Pool({
+    connectionString,
+    ...(isOracleCloud && {
+      ssl: { rejectUnauthorized: true },
+    }),
+  });
   const adapter = new PrismaPg(pool);
 
   return new PrismaClient({

@@ -10,7 +10,11 @@ if (!connectionString) {
   throw new Error("DATABASE_URL não está definida");
 }
 
-const pool = new Pool({ connectionString });
+const isOracleCloud = connectionString.includes("oci.oraclecloud.com");
+const pool = new Pool({
+  connectionString,
+  ...(isOracleCloud && { ssl: { rejectUnauthorized: true } }),
+});
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
