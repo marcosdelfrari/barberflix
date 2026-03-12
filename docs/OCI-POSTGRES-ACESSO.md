@@ -69,11 +69,11 @@ A documentação da Oracle diz que os endpoints do PostgreSQL **não são acess�
 
 4. **No projeto**, use no `.env` (ou `.env.local`):
    ```env
-   DATABASE_URL="postgresql://admin:Admin%40123@127.0.0.1:5432/cavalheiros?sslmode=require"
+   DATABASE_URL="postgresql://admin:SUA_SENHA_AQUI@127.0.0.1:5432/cavalheiros?sslmode=require"
    ```
    Se quiser validar o certificado com o CA que a OCI forneceu:
    ```env
-   DATABASE_URL="postgresql://admin:Admin%40123@127.0.0.1:5432/cavalheiros?sslmode=verify-full&sslrootcert=docs/oci-postgres-ca.pem"
+   DATABASE_URL="postgresql://admin:SUA_SENHA_AQUI@127.0.0.1:5432/cavalheiros?sslmode=verify-full&sslrootcert=docs/oci-postgres-ca.pem"
    ```
    Com o túnel ativo, rode: `npm run db:prod:setup` (ou `db:prod:deploy` e `db:prod:seed`).
 
