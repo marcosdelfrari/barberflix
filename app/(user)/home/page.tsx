@@ -11,6 +11,10 @@ export default async function HomePage() {
     redirect("/login");
   }
 
+  if (session.user.role === "ADMIN") {
+    redirect("/dashboard");
+  }
+
   const userId = session.user.id;
 
   // Buscar dados em paralelo

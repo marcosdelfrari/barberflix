@@ -2,7 +2,11 @@ import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
-import "dotenv/config";
+import { config } from "dotenv";
+
+// Mesma ordem do Next.js/Prisma: .env e depois .env.local (override) para usar o mesmo banco que o app
+config(); // .env
+config({ path: ".env.local", override: true }); // .env.local se existir
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -27,11 +31,11 @@ async function main() {
 
   // Criar usuário Admin
   const admin = await prisma.usuario.upsert({
-    where: { email: "admin@Barbearia Cavalheiros.com" },
+    where: { email: "afk.marcos@gmail.com" },
     update: {},
     create: {
       nome: "Administrador",
-      email: "admin@Barbearia Cavalheiros.com",
+      email: "afk.marcos@gmail.com",
       senha: senhaAdmin,
       telefone: "(11) 99999-0000",
       role: "ADMIN",
@@ -43,13 +47,13 @@ async function main() {
 
   // Criar usuário comum
   const user = await prisma.usuario.upsert({
-    where: { email: "usuario@Barbearia Cavalheiros.com" },
+    where: { email: "usuario@gmail.com" },
     update: {},
     create: {
-      nome: "Usuário Teste",
-      email: "usuario@Barbearia Cavalheiros.com",
+      nome: "Usuario Teste",
+      email: "usuario@gmail.com",
       senha: senhaUser,
-      telefone: "(11) 98888-0000",
+      telefone: "(11) 99999-0000",
       role: "USER",
       ativo: true,
     },
@@ -580,12 +584,11 @@ async function main() {
 
   console.log("\n📋 Credenciais de acesso:");
   console.log("----------------------------------------");
-  console.log("👑 Admin:");
-  console.log("   Email: admin@Barbearia Cavalheiros.com");
-  console.log("   Senha: admin123");
+  console.log("👑 Admin (login só com Google):");
+  console.log("   Email (use no Google): afk.marcos@gmail.com");
   console.log("----------------------------------------");
   console.log("👤 Usuário:");
-  console.log("   Email: usuario@Barbearia Cavalheiros.com");
+  console.log("   Email: afk.marcos@gmail.com");
   console.log("   Senha: user123");
   console.log("----------------------------------------");
   console.log("\n✅ Seed completo!");

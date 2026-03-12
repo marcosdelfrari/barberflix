@@ -7,15 +7,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, account }) {
-      // Na primeira vez que o usuário faz login (quando user existe)
+      // Só busca/atualiza do banco no login (evita loop e chamadas em todo request)
       if (account && user) {
-        // Verificar se o usuário já existe no banco
         let dbUser = await prisma.usuario.findUnique({
           where: { email: user.email! },
         });
 
         if (!dbUser) {
-          // Criar novo usuário se não existir
           dbUser = await prisma.usuario.create({
             data: {
               email: user.email!,
@@ -42,8 +40,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as "USER" | "ADMIN";
         session.user.nome = token.nome as string;
+        if (process.env.NODE_ENV === "development" && session.user.email) {
+          console.log("[auth] Permissão:", session.user.role, "|", session.user.email);
+        }
       }
-
       return session;
     },
     async signIn({ user }) {

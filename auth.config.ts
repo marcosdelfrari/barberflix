@@ -18,57 +18,34 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isAuthenticated = !!auth?.user;
-      const userRole = auth?.user?.role as string | undefined;
       const pathname = nextUrl.pathname;
 
       // Rotas de autenticação
       const authRoutes = ["/login", "/register"];
       const isAuthRoute = authRoutes.some((route) => pathname === route);
 
-      // Rotas de usuário
-      const userRoutes = ["/home", "/agendar", "/perfil", "/assinatura"];
-      const isUserRoute = userRoutes.some((route) => pathname.startsWith(route));
-
-      // Rotas de admin
-      const isAdminRoute = pathname.startsWith("/dashboard");
+      // Rotas protegidas (requerem autenticação)
+      const protectedRoutes = ["/home", "/agendar", "/perfil", "/assinatura", "/dashboard"];
+      const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
       // Rota pública (landing) -> Permitir sempre
       if (pathname === "/") {
         return true;
       }
 
-      // /login: se já logado, redireciona (via Response); senão, permite
-      if (pathname === "/login") {
-        if (isAuthenticated) {
-          const redirectTo = userRole === "ADMIN" ? "/dashboard" : "/home";
-          return Response.redirect(new URL(redirectTo, nextUrl));
-        }
+      // /login: se já logado, vai para /home (a verificação de admin é feita lá)
+      if (pathname === "/login" && isAuthenticated) {
+        return Response.redirect(new URL("/home", nextUrl));
+      }
+
+      // Rotas de auth sem login -> permite
+      if (isAuthRoute) {
         return true;
       }
 
-      // Outras rotas de auth - se já logado, redirecionar
-      if (isAuthRoute && isAuthenticated) {
-        const redirectTo = userRole === "ADMIN" ? "/dashboard" : "/home";
-        return Response.redirect(new URL(redirectTo, nextUrl));
-      }
-
-      // Proteção de rotas Admin
-      if (isAdminRoute) {
-        if (!isAuthenticated) {
-          return Response.redirect(new URL("/login", nextUrl));
-        }
-        if (userRole !== "ADMIN") {
-          return Response.redirect(new URL("/home", nextUrl));
-        }
-        return true;
-      }
-
-      // Proteção de rotas Usuário
-      if (isUserRoute) {
-        if (!isAuthenticated) {
-          return Response.redirect(new URL("/login", nextUrl));
-        }
-        return true;
+      // Rotas protegidas: precisa estar logado
+      if (isProtectedRoute && !isAuthenticated) {
+        return Response.redirect(new URL("/login", nextUrl));
       }
 
       return true;
